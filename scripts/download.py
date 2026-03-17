@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Download source data files specified in download.yaml."""
 
+import tarfile
 import urllib.request
 from pathlib import Path
 
@@ -21,17 +22,35 @@ def download_files():
         url = item["url"]
         local_name = item["local_name"]
         local_path = Path(local_name)
+        tar_extract = item.get("tar_extract")
 
-        # Create parent directories if needed
+        # For tarball downloads, check if extracted files already exist
+        if tar_extract:
+            all_exist = all(Path(e["dest"]).exists() for e in tar_extract)
+            if all_exist:
+                print(f"Skipping {local_name} (extracted files already exist)")
+                continue
+
         local_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if local_path.exists():
-            print(f"Skipping {local_name} (already exists)")
-            continue
+        if not local_path.exists():
+            print(f"Downloading {url} -> {local_name}")
+            urllib.request.urlretrieve(url, local_path)
+            print(f"  Downloaded {local_path.stat().st_size:,} bytes")
+        else:
+            print(f"Skipping download of {local_name} (already exists)")
 
-        print(f"Downloading {url} -> {local_name}")
-        urllib.request.urlretrieve(url, local_path)
-        print(f"  Downloaded {local_path.stat().st_size:,} bytes")
+        if tar_extract:
+            print(f"Extracting from {local_name}...")
+            with tarfile.open(local_path) as tf:
+                for entry in tar_extract:
+                    src = entry["src"]
+                    dest = Path(entry["dest"])
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    member = tf.getmember(src)
+                    with tf.extractfile(member) as src_f, open(dest, "wb") as dst_f:
+                        dst_f.write(src_f.read())
+                    print(f"  Extracted {src} -> {dest}")
 
 
 if __name__ == "__main__":
