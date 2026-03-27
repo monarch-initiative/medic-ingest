@@ -53,6 +53,6 @@ jobs:
             Automated release of MeDIC ingest data.
 
             ## Transforms included
-            - drug_to_disease (Drug to disease associations from MeDIC)
+            - medic_indication (Drug to disease associations from MeDIC)
           files: |
             output/*

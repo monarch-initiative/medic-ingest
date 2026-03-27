@@ -1,4 +1,4 @@
-name: "drug_to_disease"
+name: "medic_indication"
 metadata:
   ingest_title: "MeDIC Drug-to-Disease Indications"
   ingest_url: "https://doi.org/10.6084/m9.figshare.30491081"
@@ -9,7 +9,7 @@ reader:
     - "../data/indicationList.tsv"
   delimiter: "\t"
 transform:
-  code: "drug_to_disease.py"
+  code: "medic_indication.py"
 writer:
   min_node_count: 0
   min_edge_count: 15000

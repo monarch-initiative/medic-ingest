@@ -7,7 +7,7 @@ from biolink_model.datamodel.pydanticmodel_v2 import (
 
 import sys
 sys.path.insert(0, "src")
-from drug_to_disease import transform_record
+from medic_indication import transform_record
 
 
 @pytest.fixture
