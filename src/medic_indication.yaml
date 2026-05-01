@@ -13,6 +13,11 @@ transform:
 writer:
   min_node_count: 0
   min_edge_count: 15000
+  node_properties:
+    - id
+    - category
+    - name
+    - provided_by
   edge_properties:
     - id
     - subject

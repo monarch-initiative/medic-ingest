@@ -8,7 +8,7 @@ The archive contains `indicationList.tsv` (from `matrix-indication-list-1.3.0/me
 
 ## Drug to Disease Indications
 
-Each row in the indication list represents a single drug-disease therapeutic indication. All rows are ingested directly — no filtering is applied, as every entry represents a validated indication from MeDIC.
+Each row in the indication list represents a single drug-disease therapeutic indication. Rows where the drug ID is `"NameRes Failed"` (19 rows in the source data) are filtered out, as they lack valid drug identifiers. All remaining rows are ingested directly.
 
 ### Source File Fields
 
@@ -22,7 +22,18 @@ Each row in the indication list represents a single drug-disease therapeutic ind
 
 ### Biolink Captured
 
-#### biolink:ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation
+#### Nodes (NameRes-enriched)
+
+* id (`drug ID` or `disease IDs`)
+* category (specific biolink type from NameRes, e.g. `biolink:Drug`, `biolink:Disease`, falling back to `biolink:NamedThing`)
+* name (canonical name from NameRes, falling back to source TSV name)
+* provided_by (`["infores:medic"]`)
+
+Nodes are emitted for both drug and disease entities, **excluding** any entity whose prefix is `CHEBI` or `MONDO` — those are expected to come from their authoritative ontology sources.
+
+For non-excluded entities, the [NameRes reverse_lookup API](https://name-resolution-sri.renci.org/docs) is called to retrieve the canonical preferred name and the most specific biolink category (e.g. `Drug`, `Disease`). Results are cached per CURIE with `@lru_cache` to avoid redundant HTTP calls. If NameRes is unavailable or returns no result, the node falls back to `NamedThing` with the source-data name.
+
+#### biolink:ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation (edges)
 
 * id (UUID)
 * subject (`drug ID` — CHEBI or DRUGBANK identifier, e.g. `CHEBI:7915`, `DRUGBANK:DB00028`)
@@ -36,8 +47,9 @@ Each row in the indication list represents a single drug-disease therapeutic ind
 
 ### Design Decisions
 
-* **No filtering:** All source rows are transformed 1:1 into edges. The MeDIC indication list is already curated, so no additional exclusion criteria are applied.
-* **No node generation:** Drug and disease nodes are expected to exist in external ontologies (CHEBI, DrugBank, Disease Ontology) and are not created by this ingest.
+* **NameRes Failed filtering:** Rows with `"NameRes Failed"` as the drug ID are skipped entirely — they produce no nodes and no edges.
+* **NameRes enrichment:** Non-excluded nodes are enriched via NameRes reverse_lookup to get canonical names and specific biolink categories. Results are cached per CURIE. On failure, nodes fall back to `NamedThing` with the source name.
+* **Selective node generation:** Nodes are created for drug and disease entities unless their prefix is `CHEBI` or `MONDO`, since those have authoritative sources elsewhere.
 * **Single predicate:** All indications use `biolink:treats` — MeDIC does not distinguish between indication subtypes.
 * **Single publication:** All edges cite `PMID:41385096`, the MeDIC resource publication, rather than individual evidence references.
 
