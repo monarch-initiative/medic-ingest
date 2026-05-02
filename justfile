@@ -20,10 +20,12 @@ setup: _git-init install _git-add
 install:
     uv sync --group dev
 
-# Download source data
+# Download source data (uses scripts/download.py for tar_extract support;
+# medic's figshare archive ships as a tarball, which kghub-downloader can't
+# unpack on its own).
 [group('ingest')]
 download: install
-    uv run downloader download.yaml
+    uv run python scripts/download.py
 
 # Run all transforms
 [group('ingest')]
