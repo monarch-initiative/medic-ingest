@@ -9,6 +9,8 @@ This is a Koza ingest repository for transforming biological/biomedical data int
   - `*.py` / `*.yaml` pairs - Transform code and koza config for each ingest
   - `*_mapping.yaml` - Lookup mapping files (if needed)
   - `versions.py` - Per-ingest upstream version fetcher (consumed by `just metadata`)
+- `scripts/download.py` - Downloads source data and extracts files from the figshare tarball (driven by `download.yaml`)
+- `scripts/build_agency_indications.py` - Groups the extracted per-agency indication sheets into `data/indications_by_agency.jsonl` (run by `just download`)
 - `scripts/write_metadata.py` - Emits `output/release-metadata.yaml` from `versions.py`
 - `tests/` - Unit tests for transforms
 - `output/` - Generated nodes and edges (gitignored)

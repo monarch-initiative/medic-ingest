@@ -1,10 +1,23 @@
 # Download configuration for medic-ingest
 # Data from MeDIC (Medicines, Diseases, Indications, and Contraindications)
 # Figshare archives: https://doi.org/10.6084/m9.figshare.30491081
+#
+# We extract the per-agency deduplicated indication lists (FDA/EMA/PMDA) rather
+# than the merged indicationList.tsv, so the approving regulator, verbatim
+# indication text, and EMA source URLs survive. `just download` runs
+# scripts/build_agency_indications.py afterwards to group these into
+# data/indications_by_agency.jsonl (one record per drug-disease pair), which
+# the transform reads.
 
 downloads:
   - url: "https://ndownloader.figshare.com/files/59187533"
     local_name: "data/matrix-indication-list-1.3.0.tar.gz"
     tar_extract:
-      - src: "matrix-indication-list-1.3.0/merge_lists/indicationList.tsv"
-        dest: "data/indicationList.tsv"
+      - src: "matrix-indication-list-1.3.0/matrix-indication-list/data/02_intermediate/dailymed/fda_indications_deduplicated.xlsx"
+        dest: "data/fda_indications_deduplicated.xlsx"
+      - src: "matrix-indication-list-1.3.0/matrix-indication-list/data/02_intermediate/ema/ema_indications_deduplicated.xlsx"
+        dest: "data/ema_indications_deduplicated.xlsx"
+      - src: "matrix-indication-list-1.3.0/matrix-indication-list/data/02_intermediate/pmda/pmda_indications_deduplicated.xlsx"
+        dest: "data/pmda_indications_deduplicated.xlsx"
+      - src: "matrix-indication-list-1.3.0/matrix-indication-list/data/01_raw/ema-drugs.xlsx"
+        dest: "data/ema-drugs.xlsx"
