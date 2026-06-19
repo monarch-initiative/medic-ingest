@@ -21,6 +21,7 @@ from kozahub_metadata_schema import (
 
 MONDO_SSSOM_URL = "http://purl.obolibrary.org/obo/mondo/mappings/mondo.sssom.tsv"
 NODENORM_STATUS_URL = "https://nodenormalization-sri.renci.org/status"
+NODENORM_OPENAPI_URL = "https://nodenormalization-sri.renci.org/openapi.json"
 
 
 INGEST_DIR = Path(__file__).resolve().parents[1]
@@ -51,23 +52,32 @@ def _mondo_sssom_version() -> tuple[str, str]:
         return "unknown", "unavailable"
 
 
-def _nodenorm_version() -> tuple[str, str]:
-    """The SRI Node Normalizer reports its underlying Babel data release at /status."""
+def _nodenorm_versions() -> tuple[str, str | None, str | None]:
+    """NodeNorm versions: Babel data release + biolink model (/status) and service code (/openapi).
+
+    The data (Babel) release is the reproducibility anchor; the service code version and biolink
+    model tag are recorded for a complete receipt. They are versioned independently.
+    """
+    babel, biolink, service = "unknown", None, None
     try:
         with urllib.request.urlopen(NODENORM_STATUS_URL, timeout=10) as resp:
             status = json.load(resp)
-        babel = status.get("babel_version")
-        if babel:
-            return babel, "status_endpoint"
-        return "unknown", "unavailable"
+        babel = status.get("babel_version") or "unknown"
+        biolink = (status.get("biolink_model") or {}).get("tag")
     except Exception:
-        return "unknown", "unavailable"
+        pass
+    try:
+        with urllib.request.urlopen(NODENORM_OPENAPI_URL, timeout=10) as resp:
+            service = (json.load(resp).get("info") or {}).get("version")
+    except Exception:
+        pass
+    return babel, biolink, service
 
 
 def get_source_versions() -> list[dict[str, Any]]:
     ver, method = _medic_version_from_local_name()
     mondo_ver, mondo_method = _mondo_sssom_version()
-    nodenorm_ver, nodenorm_method = _nodenorm_version()
+    babel_ver, biolink_tag, service_ver = _nodenorm_versions()
     return [
         {
             "id": "infores:medic",
@@ -87,10 +97,14 @@ def get_source_versions() -> list[dict[str, Any]]:
         },
         {
             "id": "infores:sri-node-normalizer",
-            "name": "SRI Node Normalizer (drug id normalization, Babel data release)",
+            "name": "SRI Node Normalizer (drug id normalization)",
             "urls": [NODENORM_STATUS_URL],
-            "version": nodenorm_ver,
-            "version_method": nodenorm_method,
+            # The Babel data release is the reproducibility anchor; service code and biolink
+            # model versions are recorded separately (they version independently).
+            "version": babel_ver,
+            "version_method": "status_endpoint" if babel_ver != "unknown" else "unavailable",
+            "service_version": service_ver,
+            "biolink_model_version": biolink_tag,
             "retrieved_at": now_iso(),
         },
     ]
