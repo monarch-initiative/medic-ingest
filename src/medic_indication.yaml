@@ -2,17 +2,24 @@ name: "medic_indication"
 metadata:
   ingest_title: "MeDIC Drug-to-Disease Indications"
   ingest_url: "https://doi.org/10.6084/m9.figshare.30491081"
-  description: "Drug to disease indication edges from MeDIC (Medicines, Diseases, Indications, and Contraindications)"
+  description: "Drug to disease indication edges from MeDIC (Medicines, Diseases, Indications, and Contraindications), tagged with the approving regulator (FDA/EMA/PMDA), verbatim indication text, and source URL where available"
 reader:
-  format: "csv"
+  format: "jsonl"
   files:
-    - "../data/indicationList.tsv"
-  delimiter: "\t"
+    - "../data/indications_by_agency.jsonl"
 transform:
   code: "medic_indication.py"
 writer:
-  min_node_count: 0
-  min_edge_count: 15000
+  # Nodes are minimal, non-authoritative placeholders (see README); CHEBI/MONDO/HP
+  # remain the sources of truth for node metadata.
+  min_node_count: 4000
+  # One edge per drug-disease pair; an indication approved by multiple agencies is a
+  # single edge with multiple supporting_data_source entries (see README).
+  min_edge_count: 10000
+  node_properties:
+    - id
+    - category
+    - name
   edge_properties:
     - id
     - subject
@@ -22,5 +29,6 @@ writer:
     - knowledge_level
     - agent_type
     - primary_knowledge_source
-    - aggregator_knowledge_source
+    - sources
+    - description
     - publications
