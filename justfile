@@ -45,6 +45,29 @@ transform-all: download
 metadata:
     uv run python scripts/write_metadata.py
 
+# Export a KGX TSV copy of the JSONL output (nested columns as JSON); see scripts/export_tsv.py
+[group('ingest')]
+export-tsv:
+    uv run python scripts/export_tsv.py
+
+# Produce an xlsx KGX validation summary via monarch-initiative/kgxval (uvx, Python 3.13)
+[group('ingest')]
+kgxval-summary:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # kgxval needs Python 3.13 + bmt-from-git, so it runs via uvx, isolated from this
+    # project's 3.12 env. It reads the JSONL output directly. The source is staged under
+    # the short name `medic` because kgxval derives Excel sheet names from it and Excel
+    # caps sheet names at 31 chars. The rollup-sampling pass is slow (~5-10 min).
+    workdir="$(mktemp -d)"
+    mkdir -p "$workdir/medic"
+    cp output/medic_indication_nodes.jsonl output/medic_indication_edges.jsonl "$workdir/medic/"
+    ( cd "$workdir" && uvx --python 3.13 --from 'git+https://github.com/monarch-initiative/kgxval' \
+        many_sources "$workdir" )
+    xlsx="$(find "$workdir/data/output" -name '*.xlsx' | head -1)"
+    cp "$xlsx" output/medic_kgxval_summary.xlsx
+    echo "Wrote output/medic_kgxval_summary.xlsx"
+
 # Run full pipeline: install, download, transform, metadata, test
 [group('ingest')]
 run: test transform-all metadata

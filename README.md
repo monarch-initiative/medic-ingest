@@ -73,6 +73,27 @@ Minimal subject/object nodes are emitted (`id`, `category`, `name`) so the graph
 * `infores:ema` and `infores:pmda` are not yet registered in the InfoRes catalogue (only `infores:dailymed` is); they may need registration or remapping before production use.
 * EMA source URLs are matched to indications via an active-ingredient-set join against `ema-drugs.xlsx` (~76% coverage); unmatched EMA edges and all FDA/PMDA edges carry no `source_record_urls`.
 
+## Output formats and validation
+
+The canonical output is JSONL, because the edges carry nested provenance (`sources` is a list of Biolink `RetrievalSource` objects) that TSV has no native convention for.
+
+### TSV copy — `just export-tsv`
+
+Writes `output/medic_indication_{nodes,edges}.tsv` for consumers that want KGX TSV. `scripts/export_tsv.py` loads the JSONL into DuckDB and copies it back out, serializing per the [KGX TSV spec](https://github.com/biolink/kgx/blob/master/docs/kgx_format.md):
+
+* **Multivalued scalar columns** (`category`, `publications`, `supporting_text`) → **pipe (`|`) delimited, no wrapping brackets** — the KGX convention.
+* **Nested columns** (`sources`, a list of Biolink `RetrievalSource` structs) → **JSON**. KGX TSV has no standard for nested objects (the spec's TSV example omits them; KGX's own sink would emit Python `str(dict)` reprs), so JSON-in-cell is a deliberate, lossless, non-standard extension. Round-trip via the JSONL if strict KGX TSV is required.
+
+This exists because Koza's graph-ops verbs don't (yet) do a faithful single-file format conversion: `split` fragments output by a field and `join` only builds a DuckDB. The proper home is a future koza `export`/`convert` verb (the inverse of the `load`/`join` family, tracked in [monarch-initiative/koza#230](https://github.com/monarch-initiative/koza/issues/230)); until then we do directly in DuckDB what koza would do internally.
+
+### KGX validation summary — `just kgxval-summary`
+
+Runs [monarch-initiative/kgxval](https://github.com/monarch-initiative/kgxval) on the JSONL output and writes `output/medic_kgxval_summary.xlsx` — edge-count summaries by subject/predicate/object category, supporting-data-source and publication breakdowns, sample rows, and Biolink prefix / subject-object-predicate validation sheets.
+
+kgxval requires Python 3.13 and `bmt` (biolink-model-toolkit) from git, so it runs via `uvx`, isolated from this project's 3.12 environment; the source is staged under the short name `medic` because kgxval derives Excel sheet names from it (Excel caps sheet names at 31 chars). The rollup-sampling pass is slow (~5–10 min). kgxval reads the un-normalized JSONL directly and treats it as the "normalized" source, so the prefix-error sheet flags non-canonical id prefixes (`doid`, `drugbank`, `chembl.compound`, …) that node-normalization would later resolve.
+
+The release workflow (`.github/workflows/release.yaml`) runs this step after the pipeline so `medic_kgxval_summary.xlsx` ships as a release artifact alongside the nodes/edges. It is marked `continue-on-error`, so a kgxval failure produces no summary but never blocks the data release.
+
 ## Citation
 
 Sundar S, et al. MeDIC: Medicines, Diseases, Indications, and Contraindications. 2025. PMID: 41385096.

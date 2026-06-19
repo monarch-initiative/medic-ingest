@@ -11,6 +11,7 @@ This is a Koza ingest repository for transforming biological/biomedical data int
   - `versions.py` - Per-ingest upstream version fetcher (consumed by `just metadata`)
 - `scripts/download.py` - Downloads source data and extracts files from the figshare tarball (driven by `download.yaml`)
 - `scripts/build_agency_indications.py` - Groups the extracted per-agency indication sheets into `data/indications_by_agency.jsonl` (run by `just download`)
+- `scripts/export_tsv.py` - Exports a KGX TSV copy of the JSONL output via DuckDB (`just export-tsv`)
 - `scripts/write_metadata.py` - Emits `output/release-metadata.yaml` from `versions.py`
 - `tests/` - Unit tests for transforms
 - `output/` - Generated nodes and edges (gitignored)
@@ -23,6 +24,8 @@ This is a Koza ingest repository for transforming biological/biomedical data int
 - `just transform-all` - Run all transforms
 - `just transform <name>` - Run specific transform
 - `just metadata` - Emit `output/release-metadata.yaml`
+- `just export-tsv` - Write a KGX TSV copy of the JSONL output
+- `just kgxval-summary` - Produce an xlsx KGX validation summary via monarch-initiative/kgxval (uvx, Python 3.13)
 - `just test` - Run tests
 
 ## Adding New Ingests

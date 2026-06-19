@@ -21,6 +21,7 @@ dependencies = [
   "kozahub-metadata-schema",
   "requests>=2.28.0",
   "openpyxl>=3.1.0",
+  "duckdb>=1.0.0",
 ]
 
 [tool.uv.sources]

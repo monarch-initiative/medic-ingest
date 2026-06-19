@@ -35,6 +35,12 @@ jobs:
       - name: Run pipeline
         run: just run
 
+      # Supplementary QA artifact; uvx auto-fetches Python 3.13 + bmt. Don't let a
+      # kgxval hiccup block the data release -- the xlsx is nice-to-have.
+      - name: Generate kgxval validation summary
+        continue-on-error: true
+        run: just kgxval-summary
+
       - name: Generate release tag
         id: tag
         run: |
@@ -54,5 +60,8 @@ jobs:
 
             ## Transforms included
             - medic_indication (Drug to disease associations from MeDIC)
+
+            A `medic_kgxval_summary.xlsx` Biolink/KGX validation summary
+            (monarch-initiative/kgxval) is included when generation succeeds.
           files: |
             output/*
