@@ -13,6 +13,8 @@ Rather than the merged `indicationList.tsv`, this ingest extracts the three **pe
 
 `scripts/build_agency_indications.py` (run automatically by `just download`) groups these into `data/indications_by_agency.jsonl`, **one record per drug-disease pair**, with an `agencies` list naming every regulator that approved it (each entry carrying the verbatim indication text and — for EMA — the source EPAR URL).
 
+`just download` also fetches `data/mondo.sssom.tsv` (MONDO SSSOM exact-match mappings), used to normalize disease ids (see [Node normalization](#node-normalization)).
+
 ## Drug to Disease Indications
 
 Each record is a single drug-disease therapeutic indication. A pair approved by more than one regulator is **one record with multiple agency entries**, so the transform emits a single edge with one supporting source per agency rather than duplicate edges. All pairs with normalizable drug and disease CURIEs are ingested; rows where ID normalization failed are dropped.
@@ -37,9 +39,11 @@ Output is written as **JSONL** (`output/medic_indication_{nodes,edges}.jsonl`).
 #### biolink:ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation (edges)
 
 * id (UUID)
-* subject (`drug_id`, e.g. `CHEBI:7915`, `RXCUI:2556801`)
+* subject (normalized drug CURIE, e.g. `CHEBI:7915`)
+* original_subject (the pre-normalization drug id, only when normalization changed it)
 * predicate (`biolink:treats`)
-* object (`disease_id`, e.g. `MONDO:0007886`, `HP:0012531`)
+* object (normalized disease CURIE, e.g. `MONDO:0007886`, `HP:0012531`)
+* original_object (the pre-normalization disease id, only when SSSOM remapped it)
 * knowledge_level (`knowledge_assertion`)
 * agent_type (`text_mining_agent` — MeDIC extracts/normalizes indications from label text with an LLM)
 * primary_knowledge_source (`infores:medic`)
@@ -53,18 +57,20 @@ The **approving agency (or agencies)** are recoverable from the `supporting_data
 
 #### Nodes
 
-Minimal subject/object nodes are emitted (`id`, `category`, `name`) so the graph is self-contained:
+A node is emitted for every edge endpoint, carrying `id`, `category`, `name`, `equivalent_identifiers`, and `provided_by`. Node ids are **normalized** (see below), so the category is the most-specific Biolink class the normalizer reports (e.g. `biolink:SmallMolecule`, `biolink:Drug`, `biolink:Disease`, `biolink:PhenotypicFeature`).
 
-* drugs → `biolink:ChemicalEntity`
-* diseases → `biolink:Disease` (HP terms → `biolink:PhenotypicFeature`)
+### Node normalization
 
-> **This ingest is not an authoritative source for nodes.** Node records are minimal placeholders carrying only an identifier, a coarse category, and the label MeDIC happened to normalize to. The CURIE-issuing ontologies (CHEBI, UNII, RXCUI, MONDO, HP, …) remain the sources of truth for node metadata, categories, and synonyms. Downstream merges should prefer those sources and treat these nodes only as join targets for the edges.
+* **Diseases → MONDO, strictly via [MONDO SSSOM](http://purl.obolibrary.org/obo/mondo/mappings/mondo.sssom.tsv).** A disease id with a `skos:exactMatch` to MONDO is remapped to that MONDO id (with the MONDO `subject_label`). No other service is allowed to change a disease id: HP phenotypes and diseases with no MONDO exact match keep their original id and MeDIC's label. (MeDIC already emits ~79% of diseases as MONDO; SSSOM normalizes a further slice and leaves the UMLS/NCIT/EFO remainder that MONDO does not exact-match.)
+* **Drugs → the [SRI Node Normalizer](https://nodenormalization-sri.renci.org/).** Drug ids are normalized to NodeNorm's preferred CURIE, with its canonical label, most-specific Biolink category, and `equivalent_identifiers`. Unresolved drug ids keep their original id and MeDIC's label.
+
+When normalization changes an id, the pre-normalization id is preserved as `original_subject` / `original_object` on the edge (standard KGX practice). Both lookups run once in `on_data_begin` (SSSOM load + a single batched NodeNorm call over the unique drug CURIEs).
 
 ### Design Decisions
 
 * **Per-agency, not merged:** We ingest the per-agency lists rather than `merge_lists/indicationList.tsv` specifically to retain which regulator approved each indication, the indication text, and EMA source URLs — all of which the merge step discards.
 * **Provenance modeled like DAKP:** The `sources` retrieval path mirrors the sibling Multiomics Drug Approvals KP ingest, with MeDIC as the primary knowledge source and the regulator as the upstream supporting data source.
-* **Non-authoritative nodes:** see the note above.
+* **MONDO is the disease authority:** disease ids are normalized only via curated MONDO SSSOM exact matches, never an aggregate service — see node normalization above.
 * **Single predicate:** All indications use `biolink:treats`. (Contraindications, which MeDIC also publishes, are out of scope for this ingest.)
 * **Single publication:** All edges cite `PMID:41385096`, the MeDIC resource publication, rather than individual evidence references.
 
@@ -72,6 +78,7 @@ Minimal subject/object nodes are emitted (`id`, `category`, `name`) so the graph
 
 * `infores:ema` and `infores:pmda` are not yet registered in the InfoRes catalogue (only `infores:dailymed` is); they may need registration or remapping before production use.
 * EMA source URLs are matched to indications via an active-ingredient-set join against `ema-drugs.xlsx` (~76% coverage); unmatched EMA edges and all FDA/PMDA edges carry no `source_record_urls`.
+* Normalization calls the live SRI Node Normalizer at build time, so the build depends on its availability; the Babel data release and MONDO release are recorded in `release-metadata.yaml`. A reproducible cache-to-file step is a future enhancement.
 
 ## Output formats and validation
 

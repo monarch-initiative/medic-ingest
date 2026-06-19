@@ -2,7 +2,7 @@ name: "medic_indication"
 metadata:
   ingest_title: "MeDIC Drug-to-Disease Indications"
   ingest_url: "https://doi.org/10.6084/m9.figshare.30491081"
-  description: "Drug to disease indication edges from MeDIC (Medicines, Diseases, Indications, and Contraindications), tagged with the approving regulator (FDA/EMA/PMDA), verbatim indication text, and source URL where available"
+  description: "Drug to disease indication edges from MeDIC (Medicines, Diseases, Indications, and Contraindications), tagged with the approving regulator (FDA/EMA/PMDA), verbatim indication text, and source URL where available. Disease ids normalized to MONDO via SSSOM; drug ids via the SRI Node Normalizer."
 reader:
   format: "jsonl"
   files:
@@ -10,9 +10,9 @@ reader:
 transform:
   code: "medic_indication.py"
 writer:
-  # Nodes are minimal, non-authoritative placeholders (see README); CHEBI/MONDO/HP
-  # remain the sources of truth for node metadata.
-  min_node_count: 4000
+  # Node ids are normalized (diseases -> MONDO via SSSOM, drugs via NodeNorm), which
+  # collapses synonymous ids, so the unique-node count is lower than the raw endpoint count.
+  min_node_count: 3000
   # One edge per drug-disease pair; an indication approved by multiple agencies is a
   # single edge with multiple supporting_data_source entries (see README).
   min_edge_count: 10000
@@ -20,11 +20,15 @@ writer:
     - id
     - category
     - name
+    - equivalent_identifiers
+    - provided_by
   edge_properties:
     - id
     - subject
+    - original_subject
     - predicate
     - object
+    - original_object
     - category
     - knowledge_level
     - agent_type

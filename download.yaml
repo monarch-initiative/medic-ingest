@@ -21,3 +21,7 @@ downloads:
         dest: "data/pmda_indications_deduplicated.xlsx"
       - src: "matrix-indication-list-1.3.0/matrix-indication-list/data/01_raw/ema-drugs.xlsx"
         dest: "data/ema-drugs.xlsx"
+
+  # MONDO SSSOM exact-match mappings, used to normalize disease ids to MONDO.
+  - url: "http://purl.obolibrary.org/obo/mondo/mappings/mondo.sssom.tsv"
+    local_name: "data/mondo.sssom.tsv"
