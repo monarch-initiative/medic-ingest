@@ -89,6 +89,8 @@ Runs [monarch-initiative/kgxval](https://github.com/monarch-initiative/kgxval) o
 
 kgxval requires Python 3.13 and `bmt` (biolink-model-toolkit) from git, so it runs via `uvx`, isolated from this project's 3.12 environment; the source is staged under the short name `medic` because kgxval derives Excel sheet names from it (Excel caps sheet names at 31 chars). The rollup-sampling pass is slow (~5–10 min). kgxval reads the un-normalized JSONL directly and treats it as the "normalized" source, so the prefix-error sheet flags non-canonical id prefixes (`doid`, `drugbank`, `chembl.compound`, …) that node-normalization would later resolve.
 
+The release workflow (`.github/workflows/release.yaml`) runs this step after the pipeline so `medic_kgxval_summary.xlsx` ships as a release artifact alongside the nodes/edges. It is marked `continue-on-error`, so a kgxval failure produces no summary but never blocks the data release.
+
 ## Citation
 
 Sundar S, et al. MeDIC: Medicines, Diseases, Indications, and Contraindications. 2025. PMID: 41385096.
