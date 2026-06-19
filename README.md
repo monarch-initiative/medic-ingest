@@ -43,7 +43,7 @@ Output is written as **JSONL** (`output/medic_indication_{nodes,edges}.jsonl`).
 * knowledge_level (`knowledge_assertion`)
 * agent_type (`text_mining_agent` — MeDIC extracts/normalizes indications from label text with an LLM)
 * primary_knowledge_source (`infores:medic`)
-* description (verbatim indication text, prefixed with `[AGENCY]` and joined when multiple regulators approved the pair)
+* supporting_text (list of the verbatim regulatory indication texts, one `[AGENCY]`-prefixed entry per approving regulator)
 * publications (`["PMID:41385096"]`)
 * sources (Biolink `RetrievalSource` retrieval path):
   * `infores:medic` as `primary_knowledge_source`, with `upstream_resource_ids` naming **every** approving regulator

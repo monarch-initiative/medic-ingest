@@ -30,5 +30,5 @@ writer:
     - agent_type
     - primary_knowledge_source
     - sources
-    - description
+    - supporting_text
     - publications

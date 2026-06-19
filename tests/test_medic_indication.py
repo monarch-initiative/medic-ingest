@@ -128,10 +128,16 @@ def test_multi_agency_edge_has_one_supporting_source_each(multi_agency_record):
     assert primary.upstream_resource_ids == ["infores:dailymed", "infores:ema", "infores:pmda"]
 
 
-def test_description_attributes_text_by_agency(multi_agency_record):
-    desc = _edge(multi_agency_record).description
-    assert desc.startswith("[FDA] Cystadane is indicated for ...")
-    assert "[EMA]" in desc and "[PMDA]" in desc
+def test_supporting_text_is_one_agency_tagged_entry_per_regulator(multi_agency_record):
+    texts = _edge(multi_agency_record).supporting_text
+    assert len(texts) == 3
+    assert texts[0] == "[FDA] Cystadane is indicated for ..."
+    assert any(t.startswith("[EMA]") for t in texts)
+    assert any(t.startswith("[PMDA]") for t in texts)
+
+
+def test_single_agency_supporting_text(fda_record):
+    assert _edge(fda_record).supporting_text == ["[FDA] Pantoprazole is indicated for ..."]
 
 
 def test_ema_source_url_attached_to_supporting_source(ema_record):

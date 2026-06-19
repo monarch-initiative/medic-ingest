@@ -45,7 +45,9 @@ def transform_record(koza_transform: KozaTransform, record: dict[str, Any]) -> K
     the primary knowledge source, and each approving regulator is its own
     ``supporting_data_source`` retrieval entry -- so an indication approved by more
     than one agency is a single edge with multiple supporting sources (carrying each
-    agency's EPAR URL in ``source_record_urls`` where MeDIC provides one).
+    agency's EPAR URL in ``source_record_urls`` where MeDIC provides one). Each
+    regulator's verbatim indication text is kept as an agency-tagged ``supporting_text``
+    entry.
 
     Subject/object nodes are emitted too, but only as minimal placeholders -- this
     ingest is not an authoritative source for node metadata (see README).
@@ -71,10 +73,10 @@ def transform_record(koza_transform: KozaTransform, record: dict[str, Any]) -> K
             )
         )
 
-    # Preserve each regulator's verbatim indication text, attributed by agency.
-    description = (
-        "\n\n".join(f"[{a['agency']}] {a['indication_text']}" for a in agencies if a.get("indication_text")) or None
-    )
+    # Preserve each regulator's verbatim indication text as a separate, agency-attributed
+    # entry. supporting_text is a list, so multi-agency edges keep per-source attribution
+    # (RetrievalSource itself has no text slot to hang these on).
+    supporting_text = [f"[{a['agency']}] {a['indication_text']}" for a in agencies if a.get("indication_text")] or None
 
     association = ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation(
         id=_new_id(),
@@ -85,7 +87,7 @@ def transform_record(koza_transform: KozaTransform, record: dict[str, Any]) -> K
         agent_type=AgentTypeEnum.text_mining_agent,
         primary_knowledge_source=INFORES_MEDIC,
         sources=sources,
-        description=description,
+        supporting_text=supporting_text,
         publications=[MEDIC_PUBLICATION],
     )
 
