@@ -79,9 +79,12 @@ The canonical output is JSONL, because the edges carry nested provenance (`sourc
 
 ### TSV copy — `just export-tsv`
 
-Writes `output/medic_indication_{nodes,edges}.tsv` for consumers that want KGX TSV. `scripts/export_tsv.py` loads the JSONL into DuckDB and copies it back out, serializing multivalued/nested columns (`sources`, `supporting_text`, `publications`, `category`) as **JSON strings** so they round-trip losslessly.
+Writes `output/medic_indication_{nodes,edges}.tsv` for consumers that want KGX TSV. `scripts/export_tsv.py` loads the JSONL into DuckDB and copies it back out, serializing per the [KGX TSV spec](https://github.com/biolink/kgx/blob/master/docs/kgx_format.md):
 
-This exists because Koza's graph-ops verbs don't (yet) do a faithful single-file format conversion: `split` fragments output by a field and `join` only builds a DuckDB. The proper home is a future koza `export`/`convert` verb (the inverse of the `load`/`join` family); until then we do directly in DuckDB what koza would do internally. Note that the JSON-in-a-cell encoding for `sources` is not standard KGX TSV — round-trip via the JSONL if fidelity matters.
+* **Multivalued scalar columns** (`category`, `publications`, `supporting_text`) → **pipe (`|`) delimited, no wrapping brackets** — the KGX convention.
+* **Nested columns** (`sources`, a list of Biolink `RetrievalSource` structs) → **JSON**. KGX TSV has no standard for nested objects (the spec's TSV example omits them; KGX's own sink would emit Python `str(dict)` reprs), so JSON-in-cell is a deliberate, lossless, non-standard extension. Round-trip via the JSONL if strict KGX TSV is required.
+
+This exists because Koza's graph-ops verbs don't (yet) do a faithful single-file format conversion: `split` fragments output by a field and `join` only builds a DuckDB. The proper home is a future koza `export`/`convert` verb (the inverse of the `load`/`join` family, tracked in [monarch-initiative/koza#230](https://github.com/monarch-initiative/koza/issues/230)); until then we do directly in DuckDB what koza would do internally.
 
 ### KGX validation summary — `just kgxval-summary`
 
