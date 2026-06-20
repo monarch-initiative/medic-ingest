@@ -86,7 +86,7 @@ The canonical output is JSONL, because the edges carry nested provenance (`sourc
 
 ### TSV copy — `just export-tsv`
 
-Writes `output/medic_indication_{nodes,edges}.tsv` for consumers that want KGX TSV. `scripts/export_tsv.py` loads the JSONL into DuckDB and copies it back out, serializing per the [KGX TSV spec](https://github.com/biolink/kgx/blob/master/docs/kgx_format.md):
+Writes `output/medic_indication_{nodes,edges}.tsv` for consumers that want KGX TSV (the release workflow runs this step, so the TSV ships as a release artifact alongside the JSONL). `scripts/export_tsv.py` loads the JSONL into DuckDB and copies it back out, serializing per the [KGX TSV spec](https://github.com/biolink/kgx/blob/master/docs/kgx_format.md):
 
 * **Multivalued scalar columns** (`category`, `publications`, `supporting_text`) → **pipe (`|`) delimited, no wrapping brackets** — the KGX convention.
 * **Nested columns** (`sources`, a list of Biolink `RetrievalSource` structs) → **JSON**. KGX TSV has no standard for nested objects (the spec's TSV example omits them; KGX's own sink would emit Python `str(dict)` reprs), so JSON-in-cell is a deliberate, lossless, non-standard extension. Round-trip via the JSONL if strict KGX TSV is required.
