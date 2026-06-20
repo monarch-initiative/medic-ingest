@@ -35,6 +35,10 @@ jobs:
       - name: Run pipeline
         run: just run
 
+      # KGX TSV copy of the JSONL output, attached alongside it.
+      - name: Export TSV
+        run: just export-tsv
+
       # Supplementary QA artifact; uvx auto-fetches Python 3.13 + bmt. Don't let a
       # kgxval hiccup block the data release -- the xlsx is nice-to-have.
       - name: Generate kgxval validation summary
@@ -61,7 +65,9 @@ jobs:
             ## Transforms included
             - medic_indication (Drug to disease associations from MeDIC)
 
-            A `medic_kgxval_summary.xlsx` Biolink/KGX validation summary
-            (monarch-initiative/kgxval) is included when generation succeeds.
+            Artifacts include the JSONL nodes/edges, a KGX TSV copy, and
+            `release-metadata.yaml`. A `medic_kgxval_summary.xlsx` Biolink/KGX
+            validation summary (monarch-initiative/kgxval) is included when
+            generation succeeds.
           files: |
             output/*
