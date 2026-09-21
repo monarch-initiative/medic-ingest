@@ -20,7 +20,6 @@ from __future__ import annotations
 import csv
 import json
 import urllib.request
-import uuid
 from pathlib import Path
 from typing import Any
 
@@ -212,7 +211,7 @@ def transform_record(koza_transform: KozaTransform, record: dict[str, Any]) -> K
 
     sources = [
         RetrievalSource(
-            id=f"uuid:{uuid.uuid4()}",
+            id=INFORES_MEDIC,
             resource_id=INFORES_MEDIC,
             resource_role=ResourceRoleEnum.primary_knowledge_source,
             upstream_resource_ids=[a["infores"] for a in agencies],
@@ -222,7 +221,7 @@ def transform_record(koza_transform: KozaTransform, record: dict[str, Any]) -> K
         url = a.get("source_url") or ""
         sources.append(
             RetrievalSource(
-                id=f"uuid:{uuid.uuid4()}",
+                id=a["infores"],
                 resource_id=a["infores"],
                 resource_role=ResourceRoleEnum.supporting_data_source,
                 source_record_urls=[url] if url else None,
@@ -235,7 +234,6 @@ def transform_record(koza_transform: KozaTransform, record: dict[str, Any]) -> K
     disease = resolve_disease(record["disease_id"], record.get("disease_label"), _MONDO_MAP)
 
     association = ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation(
-        id=f"uuid:{uuid.uuid4()}",
         subject=drug.id,
         original_subject=drug.original_id,
         predicate="biolink:treats",
